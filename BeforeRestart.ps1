@@ -2,12 +2,12 @@
 # USER VARIABLES – EDIT THESE ONLY
 # ===========================================
 
-$DomainName           = "example.local"
-$DomainAdminPassword  = "P@ssw0rd123!"
-$Hostname             = "WS2025-DC"
+$DomainName           = "starry.net"
+$DomainAdminPassword  = "Password1"
+$Hostname             = "nebula"
 
-# URL to download AfterRestart.ps1 (YOU MUST CHANGE THIS)
-$PostRebootScriptURL  = "https://YOURSERVER.com/scripts/AfterRestart.ps1"
+# URL to download AfterRestart.ps1 
+$PostRebootScriptURL  = "https://raw.githubusercontent.com/ceathatkat/WindowsServer2025_SetUpScript_SysAdmin1/refs/heads/main/BeforeRestard.ps1"
 
 # Local destination
 $PostRebootScriptPath = "C:\Temp\AfterRestart.ps1"
