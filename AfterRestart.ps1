@@ -59,11 +59,4 @@ Add-DhcpServerv4Scope `
 
 Add-DhcpServerInDC -DnsName $Hostname -IpAddress $ServerIP
 
-
-# ===========================================
-# Cleanup Scheduled Task
-# ===========================================
-
-schtasks /Delete /TN "PostRebootConfig" /F
-
 Write-Host "Post-reboot configuration finished."

@@ -34,17 +34,6 @@ Import-Module ADDSDeployment
 
 
 # ===========================================
-# Schedule AfterRestart.ps1
-# ===========================================
-
-Write-Host "Scheduling AfterRestart.ps1 for next startup..."
-
-schtasks /Create /TN "PostRebootConfig" `
-    /TR "powershell.exe -ExecutionPolicy Bypass -File `"$PostRebootScriptPath`"" `
-    /SC ONSTART /RL HIGHEST /F
-
-
-# ===========================================
 # Rename Computer
 # ===========================================
 

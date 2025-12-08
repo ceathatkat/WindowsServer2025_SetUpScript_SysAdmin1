@@ -28,6 +28,12 @@ Raid 1 and 5
 
 xfs and ext4 file systems
 
+add disks
+
+mount mountpoint
+
+persistence -> fstab
+
 ------------
 GPOs
 ------------
@@ -74,6 +80,16 @@ File Sharing Network File System
 
 
 
+install rsync daemon
 
 
 
+
+
+
+
+*************************
+     Common Commands
+*************************
+
+Firewall Commands
