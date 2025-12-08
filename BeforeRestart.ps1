@@ -7,7 +7,7 @@ $DomainAdminPassword  = "Password1"
 $Hostname             = "nebula"
 
 # URL to download AfterRestart.ps1 
-$PostRebootScriptURL  = "https://raw.githubusercontent.com/ceathatkat/WindowsServer2025_SetUpScript_SysAdmin1/refs/heads/main/BeforeRestard.ps1"
+$PostRebootScriptURL  = "https://raw.githubusercontent.com/ceathatkat/WindowsServer2025_SetUpScript_SysAdmin1/refs/heads/main/BeforeRestart.ps1"
 
 # Local destination
 $PostRebootScriptPath = "C:\Temp\AfterRestart.ps1"
