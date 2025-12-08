@@ -11,9 +11,6 @@ Static IP address for the Windows Server. Example: "192.168.1.10"
 .PARAMETER SubnetMask
 Subnet mask. Example: "255.255.255.0"
 
-.PARAMETER Gateway
-Default gateway (pfSense LAN IP). Example: "192.168.1.254"
-
 .PARAMETER DnsForwarder
 Upstream DNS server for forwarding. Example: "8.8.8.8"
 
@@ -37,7 +34,6 @@ param(
     [Parameter(Mandatory=$true)][string]$DomainName,           # e.g., "example.local"
     [Parameter(Mandatory=$true)][string]$ServerIP,             # e.g., "192.168.1.10"
     [Parameter(Mandatory=$true)][string]$SubnetMask,           # e.g., "255.255.255.0"
-    [Parameter(Mandatory=$true)][string]$Gateway,              # e.g., "192.168.1.254"
     [Parameter(Mandatory=$true)][string]$DnsForwarder,         # e.g., "8.8.8.8"
     [Parameter(Mandatory=$true)][string]$Hostname,             # e.g., "WS2025-DC"
     [Parameter(Mandatory=$true)][string]$DomainAdminUser,      # e.g., "DomainAdmin"
@@ -47,17 +43,10 @@ param(
 )
 
 # -------------------------------
-# 1. Set hostname and static IP
+# 1. Set hostname
 # -------------------------------
-Write-Host "Setting hostname and static IP..."
+Write-Host "Setting hostname..."
 Rename-Computer -NewName $Hostname -Force -Restart:$false
-
-$Interface = Get-NetAdapter | Where-Object { $_.Status -eq "Up" } | Select-Object -First 1
-New-NetIPAddress -InterfaceIndex $Interface.InterfaceIndex `
-                 -IPAddress $ServerIP `
-                 -PrefixLength (([IPAddress]$SubnetMask).GetAddressBytes() | ForEach-Object { [Convert]::ToString($_,2).PadLeft(8,'0') } | Measure-Object -Sum).Sum `
-                 -DefaultGateway $Gateway
-Set-DnsClientServerAddress -InterfaceIndex $Interface.InterfaceIndex -ServerAddresses $ServerIP
 
 # -------------------------------
 # 2. Install AD DS, DNS, DHCP
