@@ -1,0 +1,344 @@
+Managing file systems and partitions on Linux and Windows is a crucial skill every system administrator must have,
+and while much of the focus on this lab will be Linux, the same concepts can be applied to Windows. Understanding
+file systems and how to use them is particularly important when working in a heterogeneous environment because
+different operating systems have different default file systems. For the end user this is mostly transparent, but for
+system administrators, it is essential to understand how partitions, partition tables and RAIDs work for both
+troubleshooting and maintaining a healthy system.
+
+
+In this lab, you will create a new Rocky virtual machine for storage, this will be your storage server for the rest of the
+course. This virtual machine will be used to partition drives using both MBR and GPT, format drives and partitions,
+create software RAIDs, and recover data from a broken (degraded) RAID on Linux. Throughout the lab, you will gain
+experience in creating partitions; using tools like gdisk, fdisk, and mdadm; and learn how to mount file systems by
+using the mount command and creating mount points.
+
+GOALS
+At the end of this lab you will...
+• Learn about the differences between GPT and MBR Partition Table Formats.
+• Have experience using the fdisk and gdisk utilities to create partitions.
+• Gain experience using the mdadm utility to build RAID configurations.
+• Have a better understanding of disk storage systems.
+• Gain familiarity with building file systems, creating logical volumes, and mounting partitions.
+PREPARATION
+• Complete the week 7 readings.
+• Know where to find the Rocky Linux documentation for reference.
+A CTIVITY SUMMARY
+Activity 1 – Setting up the Storage Server
+Activity 2 – Formatting and Mounting Drives
+Activity 3 – Creating a RAID 1 with an MBR Partition Tables
+Activity 4 – Creating a RAID 5 with a GPT Partition Table
+Activity 5 – Creating Persistent Mounts
+Activity 6 – RAID 5 Redundancy
+Activity 7 – Logical Volume Management
+Arcoraci 2 Spring 2245
+ACTIVITIES
+
+
+Activity 1 – Setting up the Storage Server
+For this activity, you will create a new linked/full clone of the Linux virtual machine. This new device will be the storage
+server used throughout the lab.
+Please Note: Any reference to a “server,” in this lab, is the Linux virtual machine created for the RAIDs and partitions.
+a. Create a linked clone of Rocky Linux. Give it a meaning name to differentiate it from the Linux client. For example,
+“storage.”
+b. Once the clone is created give it a meaningful hostname and assigned it a static network configuration setting,
+giving it an IPv4 address from the excluded addresses configured in DHCP.
+c. Update the system.
+d. Power the system off and add eight additional drives.
+e. From the virtual machine settings window. Click “Add...”
+Figure 1 – Virtual Machine Settings
+f. Using the “Add Hardware Wizard,” select “Hard Disk” Figure 2. Click Next.
+Figure 2 – Disk Selection
+Arcoraci 3 Spring 2245
+g. Select the default NVMe for the disk type (Figure 3). Click Next.
+Figure 3 – Disk Type
+h. From the “Select a Disk,” window, select “Create a new virtual disk,” Figure 4. Click Next.
+Figure 4 – Select a Disk
+i. On the next window select 4.0 GB for the disk size, Figure 5. Click Next.
+Arcoraci 4 Spring 2245
+Figure 5 – Disk Capacity
+j. The image files for the disk will be created, you may want to note the location of where these files are being stored.
+It’s good practice to store them in the same directory as the linked clone files so everything is in the same place.
+Click Finish.
+Figure 6 – Saving Virtual Disk Image Files
+k. Repeat the procedure for the remaining seven drives.
+l. Power on the virtual machine.
+Arcoraci 5 Spring 2245
+a. For the report, include a single screenshot showing the output of the hostname, which mdadm, and the date
+commands. In the same screenshot use the lsblk command to show that the eight virtual drives have been added
+to the virtual machine. See Figure 7 for an example.
+Figure 7 – Sample Drive Verification
+Based on the output where is the mdadm binary located?
+
+
+Activity 2 – Formatting and Mounting Drives
+In this activity, the first drive will be formatted and mounted. It will be formatted as a raw block device; meaning a
+partition table will not be used and the resulting filesystem will span the entire drive. Up to this point the previous
+labs provided detailed instructions and the commands to use. Now that you have some familiarity with using Linux
+commands and know how to look information up in the man pages you will need to figure out some of the commands
+for the following activities on your own.
+b. Using the mkfs command format the first drive that you added to the virtual machine. Caution: NOT the system
+drive, which contains the boot partition, referring to Figure 4 that would be nvme0n1. More than likely the first
+newly added drive will be nvme0n2. Using the man page for the mkfs command, make the file type for that drive
+XFS. Remember that the drives are located in the device (/dev) directory.
+c. For reference the output will look similar to Figure 8.
+Arcoraci 6 Spring 2245
+$ mount <device> <mount point>
+Figure 8 – Sample mkfs Output
+d. Create the directory /media/samba, this will be used to mount the newly reformatted drive (i.e., the mount point).
+e. Use the mount command to mount to the device, for help refer to the man page. The basic syntax of the command
+is provided below.
+f. To verify that the device mounted correctly run the df –h command, your output should be similar to Figure 9,
+assuming the device is /dev/nvme0n2.
+Figure 9 – Sample Output from df –h
+For the lab report, include a single screenshot showing your hostname, and the date. In the same screenshot
+show the output of the mount | grep samba command. See Figure 10 for an example.
+Figure 10 – Mount Verification
+
+Activity 3 – Creating a RAID 1 with an MBR Partition Table
+For this activity, you will create a mirrored RAID array, or RAID 1 using the mdadm utility. Once the RAID is created it
+will be partitioned using a Master Boot Record (MBR) partition table. To do this, you will use the fdisk utility and
+create a primary, extended, and logical partition.
+a. Open a terminal and enter he mdadm command as root. As always, for help using mdadm utility refer to the
+man page. To help you along with the command here are some hints.
+• You are creating a new array from unused devices.
+• By convention /dev/md0 (multiple disk 0) is use to identify the first RAID, the second will be /dev/md1,
+and so on.
+• Additional information you will need is the RAID “level” and the number of devices.
+• You will also need to use the paths for the two unused drives, assuming that the system drive is
+nvme0n1, and the drive you mounted in Activity 2 was nvme0n2, the next two available drives are
+nvme0n3, and nvme0n4.
+Please Note: If you are having trouble determining the correct command syntax to use, there is an
+examples section towards the bottom of the manual page.
+b. Run the cat /proc/mdstat command to display information about the RAID. The output will be similar to
+Figure 11.
+Arcoraci 7 Spring 2225
+Arcoraci 8 Spring 2225
+Figure 11– RAID Creation
+c. Next, partition /dev/md0 using the fdisk utility. Again, hints are provided but you will need to refer to the
+man pages for further assistance.
+e. To view all available commands in fdisk enter the letter “m”.
+f. Find the command to create an MBR partition table. On some Linux distributions it is referred to as a DOS
+partition table.
+g. Find the command to add a new partition.
+h. The primary partition will be 1GB in size.
+i. Create a second partition, and make it an extended partition. This partition will use the remaining available
+space, if no size is specified fdisk will use the remaining space by default.
+j. Create a third logical partition filling the extended partition space.
+k. Finally, make sure to write the table to disk and exit the utility.
+l. If you did things correctly, you will see output similar to Figure 12 when you run the ls /dev | grep md0
+command.
+Figure 12 – Verifying Disk Partition Creation
+m. Please Note: md0 is the raw block device and it is where the partition table is written to, if you format it,
+you will erase the partition table. DO NOT format md0. To identify the “extended” partition run the fdisk
+-l command and grep for md0. DO NOT format the extended partition either.
+n. Format the primary and logical partitions using a file system of your choice.
+o. Create two directories /media/nfs1 and /media/nfs2 and mount the partition to them.
+Arcoraci 9 Spring 2225
+For the lab report, include a single screenshot showing the hostname, the date, and the output from the
+mount | grep md0 command. Refer to Figure 13 for an example.
+Figure 13 – Sample Mount Verification
+
+Activity 4 – Creating a RAID 5 with a GPT Partition Table
+In this activity, you will create a RAID 5 using the remaining three drives and partition it with a GUID
+partition table (GPT), using gdisk. Having experience using the mdadm and fdisk utilities, you'll find that
+gdisk is nearly identical to fdisk. The only significant difference is that gdisk partitions drives using GPT,
+whereas fdisk partitions drives using MBR. NEVER use fdisk on a GPT drive or gdisk on an MBR drive,
+unless you want to overwrite the partition tables.
+a. Open a terminal. Use the mdadm utility to create a RAID 5 using the next three drives, nvme0n5,
+nmve0n6, and nvme0n7.
+b. The output of cat /proc/mdstat may look similar to Figure 14 show that the RAID 5 is active.
+Figure 14 – Sample Output
+Arcoraci 10 Spring 2225
+c. Open a terminal and run the gdisk command as root to partition the newly created RAID. Or give cfdisk
+a try.
+d. Again, use the manual page to determine how to specify the device to partition. Notice that the
+commands to gdisk are similar to the fdisk commands, however, you can enter “m” for the menu
+options.
+e. Create a new GPT partition table with three partitions, each 2GB in size.
+f. When asked to enter the hex code, use the default, 8300.
+g. Write the partition table and exit.
+h. Format the partitions using a filesystem of your choice. Again, do not format the raw device, md1,
+because it contains the partition table.
+i. Run the command ls /dev | grep md1. You should see output similar to Figure 15. If not, then repeat
+steps d through g. Alternatively, you can use the fdisk -l | grep md1 command.
+Figure 15 – Sample RAID 5
+j. Create the directories /media/samba1, /media/samba2 and /media/samba3 mount the partitions.
+For the lab report, include a single screenshot showing the hostname, the date, and the output from the
+mount | grep md1 command. The figure must be a single screen shot properly labeled and included in the
+lab report. Refer to Figure 13 for an example.
+Figure 16 – GPT Mount Verification
+
+Activity 5 – Creating Persistent Mounts
+Currently, the file system mounts are not persistent, and if the machine is rebooted, they won’t be mounted
+automatically. For this activity, you will make the mounts persistent after a reboot by editing the /etc/fstab file.
+While it is good to know how to mount a drive manually, it is certainly not something you would expect an end-
+user to know how to do. To mount on boot, you will need to place an entry in the /etc/fstab file. The /etc/fstab
+file contains six fields you can learn out about in the manual page.
+There are several ways to mount drives and file systems. In this lab, the UUID will be used to mount the file
+system. Sometimes the path to the device node in /dev can change when the system is rebooted; this is
+especially true for RAIDs. The UUID is often the best option to prevent mount failures because the UUID does
+not change. To find the UUID, enter the blkid command as root (Figure 17). You might even want to redirect it
+to a file so you can copy/paste the UUIDs into /etc/fstab. Optionally, you can open another terminal and use
+some of the commands used in the other activities .to copy and paste the UUIDs.
+Figure 17 – UUID location
+a. Use the manual page for information on the /etc/fstab file and the required syntax. Figure 18 provides
+an example entry for mounting to /media/samba.
+Figure 18 – Sample Entry
+Arcoraci 12 Spring 2225
+b. If your partition nodes in /dev are the same as the partition nodes in the lab instructions, you will add
+entries for the partitions created Activities 2 through 4. Using the blkid command use the information
+provided to create a table similar to the one below, recording the UUIDs, mount points and file types.
+This will help you when adding the entries to /etc/fstab.
+Device UUID Mount Point File Type
+/dev/nvme0n2 6176e909-dac9-4643-870d-13cfc6e698bc /media/samba ext4
+/dev/md0p1 /media/nfs1 xfs
+/dev/md0p5 /media/nfs2 xfs
+/dev/md1p1 /media/samba1 xfs
+/dev/md1p2 /media/samba2 xfs
+/dev/md1p3 /media/samba3 xfs
+c. To assist you, the UUID is what you will place in the first field (check the syntax, quotes are not needed),
+followed by the mount point of the device to be mounted, then the file system type, followed by the
+default file system options, next a zero because we are not going to dump the file system, and another
+zero so the system does not run a file system check. Again, read the manual pages to understand the
+purpose of each field.
+d. Syntax is incredibly important. If you enter incorrect information or create a typo odds are the system will
+not boot. In which case you will need to going into single use mode to access the /etc/fstab file and check
+your syntax. You might want to comment out the entries and reboot.
+Pro Tip – After you enter the first entry reboot the system to see if it will boot. If it doesn’t check the
+syntax. You might even want to reboot after each entry so you know that the last entry is where the
+problem is.
+For the report, include a single screenshot showing the output from the, hostname, and date commands. In
+the same screenshot enter the following commands to show the output, mount | grep media, cat
+/etc/fstab, and uptime. The single screen shot must be in the lab report. Refer to Figure 15 for an
+example
+
+Activity 6 – RAID 5 Redundancy
+Redundancy is one of the benefits of using a RAID 1 or RAID 5 array, meaning that if one of the drives fails, the
+data on the RAID will be unaffected. In this activity, you will deliberately cause one of the disks in the RAID to
+fail, verify that no data has been lost, replace the drive and rebuild the array.
+a. Create a directory in one of the partitions associated with the RAID 5, if you have been following the
+directions then it will be one of the partitions mounted to /media/samba1, 2, OR 3. If you are not sure
+where the RAID is mounted use the lsblk command to assist you. Add files to this directory, in myCourses
+in the “Lab Materials” section you will find some jpeg files you can use.
+b. To simulate a drive failure, use the mdadm utility and enter the following command as root.
+Arcoraci 14 Spring 2225
+# mdadm /dev/md1 -r /dev/nvme0n5
+# mdadm –detail /dev/md1
+Please Note: The command assumes that RAID 5 is associated with md1 and that nvme0n5 is one of the
+drives in the array. To verify the drive associated with your array use the lsblk command.
+c. Now that the drive has been marked as faulty, remove it using the mdadm utility and the following
+command.
+d. To show that the array is in degraded mode, enter the following command. The output will look similar to
+Figure 20. Again, the command assumes that RAID 5 is associated with md1. Referring to Figure 20, we can
+see that the drive is degraded, and also that /dev/nvme0n6 and /dev/nvme0n7 are still part of the RAID,
+but that /dev/nvme0n5 is not.
+Figure 20 – Degraded RAID 5
+e. Now that we have confirmed that the array is degraded navigate the directory where you placed data and
+observe that it has not be compromised and is still usable.
+# mdadm /dev/md1 -f /dev/nvme0n5
+Arcoraci 15 Spring 2225
+# mdadm –-manage /dev/md1 -a /dev/nvme0n5
+# mdadm –D /dev/md1
+f. For the report, include a single screenshot showing the output from the, hostname, and date commands. In
+the same screenshot enter the following commands to show the output from the, cat /proc/mdstat, and
+the ls -l command where your data is located on the mounted drive. The single screen shot must be in
+the lab report. Refer to Figure 21 for an example.
+Figure 21 – Redundancy Verification
+g. To rebuild the array, and add the drive back type the following command. Again, the command assumes
+that the array is identified by md1 and you are adding the drive nvme0n5.
+h. To verify that the RAID is fully operational (i.e., not degraded), type the following command. The output will
+be similar to Figure 22. You see that all three drives are now active.
+Arcoraci 16 Spring 2225
+Figure 22 – Rebuilt RAID 5 Array
+For the report, include a single screenshot showing the output from the, hostname, and date commands. In
+the same screenshot enter the following commands to show the output from the, cat /proc/mdstat, and
+the ls -l command where your data is located on the mounted drive. The single screen shot must be in
+the lab report. Refer to Figure 23 for an example.
+Figure 23 –Rebuilt RAID Verification
+
+
+# pvcreate /dev/nvme0n8 /dev/nvmw0n9
+
+Activity 7 – Logical Volume Management
+Logical Volume Management is similar to RAID; however, it offers much more flexibility and efficiency needed
+for modern Linux storage systems. In this activity, you will use the remaining two drives to configure them to
+function as a single logical drive, using Logical Volume Management.
+It’s important that you understand some of the terminology associated with LVM management. Below is a
+summary of key terms you will need to know for this activity.
+Physical Volume: A physical block device, such as /dev/sda. These are used as the building blocks for volume
+groups and logical volumes.
+Volume Group: A combination of one or more physical volumes in a single logical storage pool. Logical volumes
+reside in volume groups.
+Logical Volume: Are part of a volume group, similar to a partition, and can be mounted like regular partitions in
+a Linux File System.
+Creating logical volumes starts with initializing the physical volumes (pv) that are needed to create the volume
+groups (vg), from which logical volumes (lv) can be created.
+a. Use the lsblk command to identify the remaining two drives (Figure 24). If you have been following the
+instructions closely the remaining drives are nvme0n8 and nvme0n9.
+Figure 24 – LVM Drives
+a. Next, initialize the two drives as physical volumes using the pvcreate command followed by the drives to
+be initialized.
+b. To confirm that the drives are part of the physical volume use the pvscan command. The output will be
+similar to Figure 25.
+Arcoraci 18 Spring 2225
+# vgcreate starwars /dev/nvme0n8 /dev/nvme0n9
+Figure 25 – Sample pvscan Output
+c. Notice in Figure 25 there is no volume group (no VG), so we need to create one. Use vgcreate to create
+the volume group by entering the following command and passing the volume group name (you can name
+the group whatever you want, have at it) and the drives as arguments. Please note that for the remainder
+of the instructions, all commands will assume that “starwars” is the name used to identify the volume
+group.
+d. You will receive a message that the volume group was created successfully. However, the vgscan command
+can also be used and is especially useful on systems you are not familiar with. To verify that both of the
+physical drives are members of the volume group use the pvscan command. Alternatively, you can use
+the vgdisplay command and pass the name of your volume group as the argument for more detailed
+information (Figure 26). One particular piece of information is the Volume Group UUID, which appears as
+the last entry.
+Figure 26 – Example vgdisplay Output
+e. To create the logical volume from the volume group, use the lvcreate command with the following
+parameters and make it 6G. Use the manual page for specific information on the arguments being passed.
+In the example, “vader” is the name of the logical volume and will be used for the remainder of the
+instructions.
+Arcoraci 19 Spring 2225
+f. The pvscan command will show that the Logical Volume is now “active”. Just like the partitions you
+created earlier you will need format the logical volume, create a mount point, and edit fstab to make it
+persistent. There are several ways to find the path to the volume, I prefer using lvdisplay (see Figure 27).
+Instead of using the UUID however use the Logical Volume Path, to find it, enter the lvdisplay command
+in the terminal. Please note that for the remainder of the instructions, all commands will assume that
+“vader” is the name used to identify the Logical volume.
+Figure 27 – Logical Volume Path
+g. Reboot the system. Once the system reboots, open a terminal and be prepared to issue commands to
+obtain a screenshot for the lab report.
+For the report, include a single screenshot showing the output from the, hostname, and date commands. In
+the same screenshot enter the following commands to show the output from the, mount | grep vader,
+grep starwars /etc/fstab and the uptime. Refer to Figure 28 for an example.
+Important – The uptime in the screenshot must show 5 minutes or less.
+Figure 28 - LVM Mount Verification
+# lvcreate -L 6G -n vader starwars
+Arcoraci 20 Spring 2225
+# diff <(lvdisplay) <(vgdisplay) | grep ‘VG Size\|LV Size’
+# date > record.log
+# lvdisplay | grep 'LV Size' >> record.log
+# lvextend -L +500M /dev/starwars/vader
+# xfs_growfs /dev/mapper/MyVolGroup-testLV
+h. Once you have verified that the system boots successfully and all devices can auto mount, try pushing the
+fstab file to the Git repository on Serenity. Remember this is not the same device, so think about the
+process you need to go through and the Git workflow.
+i. For the final task in this activity, we are going to “grow” the LVM logical volume. If you remember when we
+created the Volume Group, we made it from two 4GB drives, but when we created the Logical Volume, we
+only made it 6GB, leaving about 2GB available. Run the following command as root to compare the Logical
+Volume size with the Volume Group Size. The output should be similar to Figure 29, ignore the message.
+Figure 29 – Logical Volume versus Volume Group Size
+j. Adding additional space to a Logical Volume is easy, all you need to is run the lvextend command. But
+before we do that, we are going to output the commands to a text file to record the size increase. In the
+following example the date command is put into a file called “record.log”. Be mindful of your current
+directory because that is where this file will be created.
+k. Next, write the current size of the Logical Volume to the same log file by appending the output of the
+following command.
+l. The next command will extend the Logical Volume “MyVolGroup-testLV” by 500MB.
+m. Next, we need to resize the file system by entering the following command.
+n. Enter the following commands to record the change to the record.log file.
+Arcoraci 21 Spring 2225
+For the report, include a single screenshot showing the output from the, hostname, and date commands. In the
+same screenshot enter the following commands, lsblk | tail -5, and cat record.log. Refer to Figure 24
+for an example.

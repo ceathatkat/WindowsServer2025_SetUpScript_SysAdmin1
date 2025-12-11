@@ -1,0 +1,477 @@
+
+Arcoraci 1 Spring 2245
+NSSA221 Systems Administration
+Lab 05: File Services
+INTRODUCTION
+As a systems administrator, it may be your responsibility to set up a file-sharing server and to configure the client, or
+user permissions to access the remote share. Understanding the protocols used, the daemon processes, and how to
+configure these services is a required skill set for a competent systems administrator.
+In this lab, you will also gain experience using the rsync command. Rsync is a utility that securely copies files locally
+and remotely, including directory hierarchies. It is a little smarter than scp (Secure Copy) because of available options,
+such as only copying source files that are different from the destination files. Rsync is also an excellent tool for backing
+up data.
+L AB SUMMARY
+In this lab, you will need the storage server from Lab 04, a Windows and Linux client. Using the partitions and mounts
+created on the storage server, you will configure remote shares, exports, and directories. You will install several services
+for file transfer (rsync and FTP) and sharing services (Samba and NFS) so that clients can remotely access these storage
+systems.
+GOALS
+At the end of this lab, you will...
+• Have experience deploying and managing File Transfer and File Sharing services.
+• Install and configure the FTP, Samba, RSYNC, and NFS services.
+• Use Rsync to back up data locally and remotely.
+• Mounting NFS exports and Samba shares on Linux and Windows Systems.
+Please Note that any reference to a server, unless otherwise noted, means the storage/RAID server created in Lab 4.
+PREPARATION
+• Read chapters 18, 19, and 20 from the Linux Bible.
+• Read the rsync article posted to myCourses.
+• Read the cron job article posted to myCourses.
+A CTIVITY SUMMARY
+Activity 1 – Initial Set Up
+Activity 2 – Rsync Basics
+Activity 3 – Installing and Configuring FTP
+Activity 4 – Creating a Drop Box
+Activity 5 – Installing Samba and Creating Share
+Activity 6 – Accessing Samba Shares from Windows
+Activity 7 – Installing RSYNC and Creating an RSYNC Module
+Activity 8 – Installing NFS and Creating a Simple NFS Share
+Arcoraci 2 Spring 2245
+Figure 1 – Lab Instructions Topology
+Table 1 – Example Configuration Settings
+Device System Hostname FQDN Configuration IPv4 Address
+pfSense/gateway BSD hoth hoth.starwars.com static/manual 192.168.1.254
+Domain Controller Windows dagobah dagobah.starwars.com static/manual 192.168.1.1
+Storage Server Linux tatooine tatooine.starwars.com static/manual 192.168.1.2
+Windows Client Windows naboo naboo.starwars.com dynamic 192.168.1.11
+Rocky Client Linux alderaan alderaan.starwars.com dynamic 192.168.1.12
+Please note that these settings are for the lab instructions and used throughout as examples and are not indicative of your
+environment.
+ACTIVITIES
+
+Activity 1 – Configuring DNS
+For the lab, we are going to start using hostnames instead of IP addresses for remote connections. For this activity, we will need to
+configure DNS on Windows Server 2022.
+Arcoraci 3 Spring 2245
+a. Windows Admin Center should already be installed on Windows 10 from Lab 2, go ahead and install the DNS
+extension. Remember, you need to connect to the server for it to show up under tools (Figure 2).
+b. You may need to create a reverse zone for your network using the network ID. In the example topology, the
+network is 192.168.1.0/24. To create the reverse zone, click the “Reverse lookup zones” link, then select
+“Create a new DNS zone.”
+c. Enter the required information (Figure 2), i.e., the network ID. Then click Create, to create the reverse zone.
+Figure 2 – Creating a Reverse Lookup Zone
+d. Referring to Figure 3, the A Resource Record for the Active Directory server is created for us, however we need
+to create an A record for the storage server. To do this click Create a new DNS record for your zone. In this
+example, the zone is starwars.com and the FQDN for the storage server is tatooine.starwars.com with an IP
+address 192.168.1.2.
+Figure 3 – Windows Admin Center DNS
+e. Fill in the required information and make sure to create the associated pointer (PTR) resource record. Figure 4.
+Click Create and repeat the process for all the devices in your infrastructure.
+Figure 4 – Creating an A Resource Record
+f. Using the information from Table 1, when you are done, you should have A Resource Records (Figure 5) for all
+devices/virtual machines in your domain and the associated reverse lookups and pointer records (Figure 6).
+Figure 5 – Completed Forward Lookup Zone
+Figure 6 – Completed Reverse Lookup Zone
+Arcoraci 5 Spring 2245
+For the report, you will need two screenshots of the forward and reverse lookup zone configurations similar to Figures 5
+and 6.
+
+Activity 2 – Rsync Basics
+Backing up files is a vital system administrator responsibility. In Lab 3, you tracked changes to files using Git and pushed
+them to a repository, which, in a roundabout way, backed those files up, and if you ever need to restore them, you can
+clone or pull the repository. In this activity, we will take a more direct approach by backing up files on the Linux client
+using the rsync utility and some of its more common options.
+a. On the Linux client, create two directories titled “original” and “backup” in your home directory.
+b. In myCourses, download the zipped file located in the “Lab Materials” section in the module titled “Sample Data.”
+This zipped file contains a mix of jpeg and txt files (Figure 7) that are needed for the activity.
+Figure 7 – Sample Data
+c. Extract the downloaded zipped files to the “original” directory (Figure 7). For information on how to unzip
+compressed files in Linux refer to the unzip man pages.
+d. Rsync is installed on the Rocky images by default, if you are curious check the version by entering rsync --
+version in the terminal.
+e. To perform local backups the syntax of the rsync command is rsync {options} {source} {Destination}.
+f. Back up the files in the original directory to the backup directory. Using the following command, where “abc1234,” is
+your RIT login ID. This command assumes you are currently in your home directory.
+g. Examine the contents of the log file. Look for information on the total bytes sent and received, and the total size of
+the data.
+# rsync -av original/ backup ––log–file=abc1234.log
+Arcoraci 6 Spring 2245
+For the report, include a screenshot showing the output of the hostname, date, ls original/ backup/
+commands.
+Figure 8 – Example Screenshot
+g. Delete the files in the backup directory and run the following command. For steps f through j after running each
+command examine the contents of the backup and destination directories and observe the behavior. You will need
+to answer questions about your observations in the report.
+h. Delete the current files in the backup directory and create some test files using the following command.
+i. Verify that the files have been created and examine the contents of the backup directory. Then run the following
+command.
+j. Run the same command again but omit the “/” after the “original” directory.
+# rsync -av --exclude ‘*.jpg’ original/ backup
+# touch test{1..9}.txt
+# rsync -av --delete original/ backup
+Arcoraci 7 Spring 2245
+k. In your home directory create another directory call “destination” and run the following command. Examine the
+contents of the destination directory. Was anything backed up?
+l. Run the command again without the --dry-run argument. Exam the contents of the “original” and “destination”
+directories and record what you observe.
+There is a question about rsync and the various arguments used in this activity, now would be a good time to
+answer it while the exercise is fresh in your mind.
+Explain in your own words what the rsync command and associative arguments did in this activity. What behavior
+did you observe?
+For the report, you will need to show the output of the hostname, date, and terminal history showing the
+rsync commands used in this activity. Refer to Figure 9 for reference.
+# rsync -av --delete original backup
+# rsync --dry-run --remove-source-files -av original/ destination/
+# rsync --remove-source-files -av original/ destination/
+Arcoraci 8 Spring 2245
+Figure 9 – Sample Screen Shot of Rsync Commands
+
+Activity 3 – Installing and Configuring FTP
+For this activity, you will install the required packages for the Very Secure File Transport Protocol Service, or vsftpd. You
+should be familiar with the dnf command; if not, refer to the dnf cheat sheet in myCourses.
+a. Make sure the system is updated! Always update!
+b. Install the vsftpd package using dnf on the storage server created in Lab 4.
+c. Once the installation is complete, enable the service to start when the system boots, and then start the service.
+Again, if you are not sure how to do this, refer to the systemd cheat sheet in myCourses.
+d. Verify that the server is listening for FTP traffic by entering the following command. The output will be similar to
+Figure 10.
+Figure 10 – Verification that the server is “Listening” FTP traffic
+# ss -l | grep ftp
+Arcoraci 9 Spring 2245
+e. Next, create the firewall rule to allow for incoming traffic on port 21 and FTP, then reload firewalld.
+f. Examine the VSFTPD configuration file located in the /etc/vsftpd/ directory. Take note of how, by default, the
+vsftpd.conf file allows local user and anonymous access (Figure 11). Examine so of the other default settings and
+read the comments in the file to understand what they do.
+Figure 11 – Default Parameter Settings
+g. Next, create a local user account (remember the adduser command?) that will be used to FTP from the client. Set a
+password for the account.
+h. On the Linux client virtual machine, install the “Sophisticated File Transfer Program,” or “lftp,” using the dnf package
+manager. Did you update?
+i. Once the user has been created, log into the server from the client using the following command. In the example
+command below the user logging in is, “r2d2” and the server hostname is “tatooine.”
+j. When prompted, enter the password for the user. Once you have logged in successfully, the prompt will change
+from the shell prompt to the FTP prompt (Figure 12), showing the user logged in and the hostname. Type help, to
+see the many commands that FTP provides. To disconnect, type exit.
+# firewall-cmd --permanent --add-port=21/tcp
+# firewall-cmd --permanent --add-service=ftp
+# firewall-cmd --reload
+And this -->
+$ lftp -u r2d2 tatooine
+Arcoraci 10 Spring 2245
+Figure 12 – FTP Prompt
+For the report, include a single screenshot showing the output from the hostname, whoami, and date commands.
+Show the user you created logging into the FTP server from the client. Once you have logged in, enter the ls -a
+command. Refer to Figure 13 for an example.
+Figure 13 – Successful FTP Login
+j. Next, log in anonymously by entering the server’s hostname only.
+$ lftp tatooine
+Arcoraci 11 Spring 2245
+For the report, include a single screenshot showing the output from the hostname, whoami, and date commands.
+Show the anonymous login from the client to the server. Once you have logged in, enter the ls -a command.
+Refer to Figure 14 for an example.
+Figure 14 – Anonymous FTP Login
+Time to think. What are the differences between a local user logging into the server and someone logging in
+anonymously?
+
+Activity 4 – Creating a DropBox
+This activity will walk you through the process of configuring an FTP anonymous user drop box and give you some idea
+of how the drop boxes work in myCourses. As a student, you can upload files to the myCourses drop boxes, but once
+they have been uploaded, you no longer have the ability to download them. Additionally, this activity will also provide a
+brief introduction to SELinux. For this to work, SELinux will need to be set to enforcing.
+a. Install the SELinux Troubleshooter on the server using the following command.
+b. On the server edit the /etc/selinux/config file, so it is enforcing, or you may temporarily set it to enforcing by
+entering the command setenforce 1. You can set it to permissive by entering the command setenforce 0. If
+you edit the configuration file you will need to reboot the system for the changes to take effect. To check the
+# dnf install –y setroubleshoot setools
+Arcoraci 12 Spring 2245
+current status, use the getenforce, sestatus commands. For this activity SELinux needs to be “Enforcing,” on
+the server (Figure 15). For later labs you may want to disable it, or set it to permissive.
+Figure 15 – Sestatus Output
+c. Create a directory in the FTP default document root, /var/ftp, called “dropbox”.
+d. Set the permissions, so that the owner can read, write, and execute. Change permissions so that the group and
+others have write and execute permissions. The octal values for the directory will be 0733. For the drop box we
+want the anonymous user to be able to write to it but not read from it.
+e. Next, create an ftp group for the directory by entering the following command. The permissions should look like
+the permissions in Figure 16, for the directory. Notice that everyone has write permissions.
+Figure 16 – Directory Permissions
+f. Edit the vsftpd configuration file so that the following statements are created or uncommented.
+# chgrp ftp /var/ftp/dropbox
+anon_upload_enable=yes
+anon_mkdir_write_enable=yes
+chown_uploads = yes
+chown_username = root
+Arcoraci 13 Spring 2245
+g. Restart the vsftpd service.
+h. On the client create a file to transfer to the server. Anonymously log into the server and navigate to the dropbox
+directory. Use the put command to transfer the file to the dropbox directory. It will fail, see Figure 17. This is
+because we have not created the correct SELinux context label for the “dropbox” directory.
+Figure 17 – Transfer Fail
+i. How do we know the “dropbox” directory does not have the correct SELinux context label? Open the SELinux Alert
+Browser by typing sealert in a terminal. The message displayed will be similar to Figure 18. Examining the alert
+gives us some idea of what is going on, the vsftpd process, attempted to write to the “dropbox” directory and was
+denied.
+Figure 18 – SELinux Alert Message
+j. For more information, you can click the “Troubleshoot” button, and are given several options to address the
+problem (Figure 19). What we are trying to do is allow the vsftpd service to write to the “dropbox” directory. The
+troubleshooter provides us with a solution and the commands to use.
+# dnf install –y setroubleshoot setools
+Arcoraci 14 Spring 2245
+Figure 19 – SELinux Troubleshooting Solution
+Note: the ↵ symbol denotes that the next line of text is a continuation of the current command; meaning the first
+two lines are entered on a single terminal line.
+e. Now that the “dropbox” directory has the correct SELinux context rules and Boolean value for anonymous write
+access, you can upload the file to the directory.
+f. However! If you type the ls command from the client you will not see the file (Figure 20).
+Figure 20 – Where’s Waldo the File!
+g. Check the server to see if the file is there. Or better yet, check the log located in /var/log/xferlog.
+# semanage fcontext -a -t public_content_rw_t ↵
+“/var/ftp/dropbox(/.*)?”
+# restorecon –R -v /var/ftp/dropbox
+# setsebool -P ftpd_anon_write 1
+Arcoraci 15 Spring 2245
+For the report, include a single screenshot showing the output from the hostname command and the contents of the
+transfer log (/var/log/xferlog) by “grepping” for the file. Refer to Figure 21 for an example.
+Figure 21 – Sample Output of the xferlog File
+
+Activity 5 – Installing Samba and Creating a Samba Share
+For this activity, you will install the required packages to set up a Samba server. Once the service is installed it will be
+configured to restrict user access based on group membership.
+a. There are three packages required for Samba, check to see if they are installed on the server. Hint: Check the dnf
+cheat sheet posted to myCourses. To see what the required packages are for your Linux distribution check the
+Samba documentation.
+https://wiki.samba.org/index.php/Main_Page
+b. Next, configure the smb and nmb services to start and enable for system reboots. Remember the systemctl
+command?
+c. Enter the following command to test local connectivity to the service. The output will be similar to Figure 22. Note
+the Samba version.
+# smbclient -L localhost
+Arcoraci 16 Spring 2245
+Figure 22 – Samba Version Information
+c. Before going further, we need to set the firewall rules on the server to allow clients access to the Samba shares. At
+this point you should be comfortable with the firewall-cmd command, so the specific command will not be
+provided. However, the ports that Samba uses are TCP port 445, and 139. Or you can add the samba service. To
+verify that the firewall is configured correctly enter the follow command and reload the firewall. Afterwards you will
+see the Samba service listed (Figure 23).
+Figure 23 – Firewall Services
+d. Next, we’ll create Samba users on the server. Samba users are associated with local Linux user accounts, but they
+are given a Samba specific password. On the server I created the four users: joey, johnny, deedee, and marky, using
+the useradd command. I also want to prevent them from logging in remotely and using other services, like SSH, do
+to this I am setting their shell to /sbin/nologin.
+e. Create a group whose member will have write access to the Samba share. The following command adds the
+“writers” group.
+f. Use the usermod command to add joey, johnny, and deedee to the group. Unfortunately, the Ramones change
+drummers often, so we don’t them involved in writing songs, so Marky is not added to the “writers” group.
+g. Verify that Joey, Johnny, and Deedee are members of the “writers” group, by viewing the /etc/group file. Or to find
+out if a specific user is a member of a group enter the following command, where “joey” is the example user.
+# firewall-cmd –list-services
+# for i in joey johnny deedee marky; do useradd -s /sbin/nologin $i; done
+# groupadd writers
+# for i in joey johnny deedee; do usermod -aG writers $i; done
+Arcoraci 17 Spring 2245
+h. Create Samba specific passwords for the users. Since this a lab and not the “real world,” keep it simple, like
+“password.” To do this, use the smbpasswd –a command, it is important to add the “a” argument, because even
+though the local user accounts have been created, these are “adding” passwords for the Samba user accounts.
+i. When prompted enter the password twice for each user.
+j. Create the ramones directory on the /media/samba partition created in Lab 4.
+k. Set the group ownership of the directory to the writers group.
+l. Change the permissions so that the “writers” group has write access.
+Figure 24 – Example Permissions and Group membership for Samba Share
+m. Add some files to the directory. I added two, the “lyrics” and “chords” text files for demonstration purposes.
+n. Finally, edit the /etc/samba/smb.conf file for the share directory by adding the following to the bottom of the file.
+o. Use the testparm command, to check for any syntactical errors in the smb.conf file. The output will show the share
+and indicate that the “Loaded services file,” is “OK,” see Figure 25.
+# groups joey
+# for i in joey johnny deedee marky; do smbpasswd -a $i; done
+# chgrp writers /media/samba/ramones
+# chmod g+rwx /media/samba/ramones
+[ramones]
+comment = Blitzkrieg Bop
+path = /media/samba/ramones
+read only = no
+write list = @writers
+$ testparm
+Arcoraci 18 Spring 2245
+Figure 25 – Sample Output from the testparm Command
+p. Restart the nmb and smb.services.
+q. Next, on the server use the smbclient -L command to verify the share exists (Figure 18).
+Figure 25 – Sample Output from the smbclient Command
+r. Check the status of SELinux, use the setenforce 0 command to temporarily disable it, or edit the
+/etc/selinux/config file to disable on boot.
+s. On the client virtual machine, install the samba-client and cifs-utils packages.
+t. Use the smbclient command to confirm the share can be accessed remotely, substituting “localhost” with the
+hostname, of the device where the samba share is located. In the example command, the hostname of the server is
+“storage,” the hostname of your server maybe different. The output will be similar to that of the server (Figure 18).
+If you run into problems, double check the firewall and SELinux settings.
+Note: Depending on the user you are currently logged in as you may be prompted for a password, otherwise just hit
+enter.
+$ smbclient –L //storage/
+Arcoraci 19 Spring 2245
+u. Log in as one of the users that is a member of the writers group. In the following example, I am logging in as the
+user Johnny to the Samba share, “ramones.”
+v. When prompted for the user’s password make sure to enter the Samba password and not the local Linux user
+account password (they are different). Once, you have successfully logged in, use the ls command to view the
+contents of the directory. To demonstrate you have write access, use the mkdir command and create a “test”
+directory.
+For the report, include a single screenshot showing the output from the, hostname and whoami commands. You will
+also need to show the Samba user successfully logging into the shared directory. Once you are able to access the share
+use the mkdir command to create a “test” directory and then use the ls command to list it. Refer to Figure 19 for an
+example.
+Figure 19 – Sample Screenshot for Remote Samba Access and Write Verification
+$ smbclient –U johnny //storage/ramones
+Arcoraci 20 Spring 2245
+
+Activity 6 – Accessing the Samba Share from Windows
+For this activity, you will access the share from Windows using the user that does not have write permissions. If you
+have been using the user that was created in the previous activity the user will be “marky.” Also, you’ll access the share
+using PowerShell CLI and graphical utilities.
+a. On the windows client, open PowerShell as Administrator.
+b. Establish an SMB connection with a user who is a member of the “writers” group by entering the following
+command. The example command uses the user “joey,” whose password is “password” your may be different.
+c. Use the cd command to navigate to the “ramones” directory.
+d. To test that the user can write to the directory use the mkdir or touch commands and create another directory or
+file.
+Figure 20 – PowerShell Write Test
+e. To terminate the current connection type the following command. When prompted hit enter, the default is Yes.
+f. Next establish an SMB connection by mapping the drive (figure 21).
+Figure 21 – Mapping to the SMB Share
+> New-SmbMapping -LocalPath ‘Z:’ -RemotePath ‘\\storage\ramones’ -UserName ↵
+‘joey’ -Password ‘password’
+> cd \\storage\ramones\
+> Remove-SmbMapping -RemotePath ‘\\storage\ramones’
+Arcoraci 21 Spring 2245
+g. Select a user that does not have “write” permission, continuing with the previous examples I’ll stick with “marky”
+and enter their credentials (Figure 22).
+Figure 22 – Enter SMB User Credentials
+h. Once you have logged in you will see two directories, a home directory for the user and the “ramones” directory
+(Figure 23). Double-click the “ramones” directory and try adding a file or directory to it, as expected you will be told
+“You need permission to perform this action” (Figure 24).
+Figure 23 – SMB Shares
+Arcoraci 22 Spring 2245
+Figure 24 – Permission Denied
+i. To terminate the SMB connection and log in as a different user enter the following command in PowerShell. But
+wait! Before you disconnect you need to get some screenshots.
+For the report, obtain a screenshot showing the output of the Get-SmbConnection, Get-date, and hostname
+cmdlets. Refer to Figure 25 for an example.
+Figure 25 – Windows Client SMB Verification
+Include a second screenshot from the server showing the output from the hostname,whoami, and date commands.
+Include the output of the smbstatus –b command showing connections from the Windows and Linux clients and two
+different users. Refer to Figure 26 for an example.
+Figure 26 – Sample Output from the smbstatus –b Command
+> Remove-SmbMapping -RemotePath ‘\\storage\ramones’
+Arcoraci 23 Spring 2245
+
+Activity 7 – Creating an RSYNC Module
+For this activity, you will configure the storage server to as an RSYNC server and use the client to transfer data from it.
+For this activity, use on of the existing mounts from the previous lab, or create a new directory in /media. The example
+in the instructions uses the “rsync” subdirectory.
+a. Verify that the rsync packages are installed on the server.
+b. Add the necessary firewall rules to allow the RSYNC server. RSYNC runs on TCP port 873.
+c. RSYNC servers export modules as Samba servers export shares. Edit the rsyncd configuration file (/etc/rsyncd.conf)
+and append the following lines:
+Configuration Summary
+[ramones] specifies the name of the module.
+chroot = false prevents the rsync daemon from changing the root path before starting the file transfer with the
+client. If set to true you will need root privileges to access the path.
+path = /media/rsync specifies the path of the directory to export as the module. In this case we are using the
+rsync1 logical volume we created in lab 3.
+comment = Ramones RSYNC Module provides a user friendly comment to describe the module.
+read only = yes configures the module to be read only. While RSYNC can be used to both upload and download
+files, it is usually used only to download files (similar to how FTP servers frequently allow only anonymous
+downloads).
+list = yes allows clients to list the directory contents in the module.
+d. Restart the rsyncd service.
+[ramones]
+chroot = false
+path = /media/rsync
+comment = Ramones RSYNC Module
+read only = yes
+list = yes
+uid = nobody
+gid = nobody
+Arcoraci 24 Spring 2245
+e. Create a file in /media/rsync and add content to it (i.e. a text file).
+f. On the client, verify that the rsync package is installed.
+g. Run the following command on the client to list the available RSYNC modules on the storage server. You should see
+output similar to Figure 27.
+Figure 27 – Available RSYNC Modules
+h. From the client, list the contents of the of the ramones module’s directory. You should see output similar to Figure
+28.
+Figure 28 – RSYNC Directory Listing
+i. Transfer the test.txt file over to the client using the following command. Unless there is an error, you will notice that
+there is no output from the command. When using RSYNC, no news is good news.
+$ rsync storage::
+$ rsync storage::ramones/
+$ rsync storage::ramones/test.txt ./
+Arcoraci 25 Spring 2245
+For the report, provide a screenshot showing the output from the hostname command and rsync log messages by
+grepping /var/log for rsync log messages. The suggested command to do this is grep –ir ramones /var/log |
+tail -3 . Figure 29 provides an example of the output.
+Figure 29 - Server Log
+
+Activity 8 – Creating an NFS Exports
+For this activity, you will configure the client and server to use the Network File System or NFS. NFS was native to
+Unix/Linux environments and was developed by Sun Microsystems in 1984. As old as it is, it is still used and being
+developed today, mainly because it requires little overhead and it’s easy to use. In industry, the two most common
+deployments are to provide access to home directories for LDAP users and access to shared file systems on other Linux
+servers. Additionally, NFS is supported by Windows Server 2016 and 2019. For this activity you will mount to NFS
+exports from Windows and Linux clients.
+a. Install the nfs-utils packages on the storage server.
+b. Create the directory to be “exported,” or shared on /media/nfs1. For example, I created the
+/media/nfs1/weezer directory (which is located on the partition md0p1 that was created in Lab 3).
+c. Change the permission and ownership for the directory to match those in Figure 30.
+Figure 30 – Directory Permission for the NFS Export
+d. Edit the “exports” file located in the /etc directory. The file will be empty; add the following line to the file.
+$ dnf install nfs-utils
+$ chmod 775 /media/nfs1/weezer
+/media/nfs1/weezer *(rw,sync,no_root_squash)
+Arcoraci 26 Spring 2245
+Report Question – Explain the function of the three options in the entry. Hint: Chapter 20 of
+the Negus book and the nfs man page are good resources.
+• rw
+• sync
+• no_root_squash
+What would the entry look like if you want only to allow access to the NFS share from a host
+device whose IP address is 192.168.1.4?
+e. Start/restart the nfs service and configure it to start on boot.
+f. Create the firewall rules to allow access to the following three services, nfs, mountd, and rpc-bind. You may wish to
+make use of the --add-service flag of firewall-cmd . Alternatively, you can use the Firewall Configuration
+Window through Applications
+ Sundry
+ Firewall and check the services for nfs and rpc-bind which will open the
+required ports for clients to mount to the NFS export.
+g. On the client, install the nfs-utils packages.
+h. Create a directory to mount the NFS share. Usually, these are placed in /media. For example, I created the
+/media/nfsmount directory.
+i. To mount to the share enter the following command as root, where “storage” is the hostname of the device that the
+NFS share is located on. Your hostname may be different.
+j. Perform a test to confirm that the share can be accessed by creating a file or directory in the remote NFS share.
+For the report, provide a single screenshot showing that you can navigate to the NFS export and use the ls –la
+command to show the permissions and ownership of the file or directory on the shared resource. Also, include the
+output from the, hostname and whoami commands. Finally, use the df –H command to show that you are currently
+mounted to the resource. Refer to Figure 31 for an example.
+# mount storage:/media/nfs1/weezer /media/nfsmount
+Arcoraci 27 Spring 2245
+Figure 31 – Sample Linux Client NFS Mount Verification
+k. Edit the /etc/fstab file so that the NFS export mounts when the system boots up. The entry will look similar to the
+example provided below. It is important to identify the mount as an “nfs” export and to use “_netdev” as the option
+(in bold for emphasis).
+j. On the windows 10 client, turn on the Windows feature “Services for NFS” (Figure 32).
+Figure 32 – Services for NFS
+# storage:/media/nfs1/weezer /media/nfsmount nfs _netdev 0 0
+Arcoraci 28 Spring 2245
+k. Next, enable write permissions for the anonymous user by editing the registry. Open the Registry Editor (regedit)
+and navigate to HKEY_LOCAL_MACHINE\SOFTWARE\Microsfot\ClientForNFS\CurrentVersion\Default.
+l. On the storage server, use the stat command to find the UID and GID of the NFS export (Figure 33).
+Figure 33 – Stat Command on NFS Export
+m. Create a new New DWORD (32-bit) Value named AnonymousUid and assign the UID found on the NFS Export.
+n. Create a new New DWORD (32-bit) Value named AnonymousGid and assign the GID found on the NFS Export.
+Figure 34 – Registry Entries
+o. Restart Windows
+p. To mount to the NFS export, open the Windows Command Prompt and type the following command. This command
+will mount the NFS export anonymously to drive letter “Z:”. The output will look similar to Figure 35.
+Arcoraci 29 Spring 2245
+Figure 35 – Mount Success
+q. You can also open “This PC” and you will see the NFS export listed under “Network Locations” (Figure 36).
+Figure 36 – Network Locations
+r. Double-click the export and create a file or directory.
+> mount -o anon storage:/media/nfs1/weezer Z:
+Arcoraci
