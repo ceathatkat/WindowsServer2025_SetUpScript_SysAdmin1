@@ -88,6 +88,7 @@ use df -h to verify device was mounted correctly
 
 For this activity, you will create a mirrored RAID array, or RAID 1 using the mdadm utility. Once the RAID is created it will be partitioned using a Master Boot Record (MBR) partition table. To do this, you will use the fdisk utility and create a primary, extended, and logical partition.
 	a. Open a terminal and enter he mdadm command as root. As always, for help using mdadm utility refer to the man page. To help you along with the command here are some hints.
+	ex: mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/nvme0n3 /dev/nvme0n4
 		• You are creating a new array from unused devices.
 		• By convention /dev/md0 (multiple disk 0) is use to identify the first RAID, the second will be /dev/md1, and so on.
 		• Additional information you will need is the RAID “level” and the number of devices.
@@ -116,6 +117,7 @@ Please Note: md0 is the raw block device and it is where the partition table is 
 
 In this activity, you will create a RAID 5 using the remaining three drives and partition it with a GUID partition table (GPT), using gdisk. Having experience using the mdadm and fdisk utilities, you'll find that gdisk is nearly identical to fdisk. The only significant difference is that gdisk partitions drives using GPT, whereas fdisk partitions drives using MBR. NEVER use fdisk on a GPT drive or gdisk on an MBR drive, unless you want to overwrite the partition tables.
 	a. Open a terminal. Use the mdadm utility to create a RAID 5 using the next three drives, nvme0n5, nmve0n6, and nvme0n7.
+	ex: mdadm --create /dev/md1 --level=5 --raid-devices=3 /dev/nvme0n6 /dev/nvme0n7 /dev/nvme0n8
 	b. The output of cat /proc/mdstat may look similar to Figure 14 show that the RAID 5 is active.
 	c. Open a terminal and run the gdisk command as root to partition the newly created RAID. Or give cfdisk a try.
 	d. Again, use the manual page to determine how to specify the device to partition. Notice that the commands to gdisk are similar to the fdisk commands, however, you can enter “m” for the menu options.
